@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meeting Cost Clock</title>
+  <link rel="stylesheet" href="popup.css">
+  <style>
+    :root { --accent: #06b6d4; }
+
+    #onboarding { display: flex; flex-direction: column; gap: 10px; }
+    .onboarding-title { font-size: 15px; font-weight: 700; color: #e0e0e8; }
+    .onboarding-desc { font-size: 12px; color: #8888a0; line-height: 1.65; }
+    .onboarding-desc strong { color: #c8c8dc; }
+    .onboard-field { display: flex; flex-direction: column; gap: 5px; }
+    .settings-hint a { color: var(--accent); text-decoration: none; }
+    .settings-hint a:hover { text-decoration: underline; }
+
+    /* ── Setup inputs ── */
+    .setup-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .setup-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .setup-label { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #555568; }
+    .setup-input {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; padding: 8px 10px; color: #e0e0e8; font-size: 13px;
+      font-family: inherit; outline: none; width: 100%; box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .setup-input:focus { border-color: var(--accent); }
+
+    /* ── Cost display ── */
+    .cost-display { text-align: center; padding: 16px 0 10px; }
+    .cost-label { font-size: 9px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #555568; margin-bottom: 6px; }
+    .cost-amount {
+      font-size: 42px; font-weight: 800; color: var(--accent);
+      font-variant-numeric: tabular-nums; letter-spacing: -1px;
+      line-height: 1; margin-bottom: 4px;
+    }
+    .cost-currency { font-size: 22px; vertical-align: super; margin-right: 2px; font-weight: 700; }
+    .cost-cents { font-size: 22px; font-weight: 700; color: var(--accent); opacity: 0.6; }
+    .elapsed-time { font-size: 11px; color: #555568; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+    /* ── Stats grid ── */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0; }
+    .stat-tile {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 7px; padding: 8px 10px; text-align: center;
+    }
+    .stat-number { font-size: 16px; font-weight: 700; color: #e0e0e8; font-variant-numeric: tabular-nums; }
+    .stat-label { font-size: 9px; color: #555568; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+
+    /* ── Timer controls ── */
+    .timer-controls { display: flex; gap: 6px; margin-top: 4px; }
+    .start-btn {
+      flex: 1; background: var(--accent); color: #0a0a0f; border: none;
+      border-radius: 7px; padding: 10px; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .start-btn:hover { opacity: 0.88; }
+    .reset-btn {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: #8888a0; border-radius: 7px; padding: 10px 14px;
+      font-size: 12px; cursor: pointer; transition: all 0.15s;
+    }
+    .reset-btn:hover { color: #e0e0e8; }
+
+    /* ── Gemini insight ── */
+    .insight-card {
+      background: rgba(6,182,212,0.07); border: 1px solid rgba(6,182,212,0.18);
+      border-radius: 7px; padding: 9px 11px; margin-top: 8px;
+      font-size: 11.5px; color: #a0c8d0; line-height: 1.55;
+    }
+    .insight-label { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #06b6d4; margin-bottom: 4px; }
+    .insight-loading { color: #555568; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-left">
+        <span class="logo">✦</span>
+        <h1>Meeting Cost Clock</h1>
+      </div>
+      <div class="header-right">
+        <span class="badge">Gemini</span>
+        <button id="settings-btn" class="settings-btn" title="API Settings">⚙</button>
+      </div>
+    </div>
+
+    <div id="onboarding" class="hidden">
+      <p class="onboarding-title">👋 Welcome! Add your API key</p>
+      <p class="onboarding-desc">Ticks up the <strong>real cost of your meeting</strong> as it happens — so you can see what this call is actually worth in salary time.</p>
+      <p class="onboarding-desc" style="margin-top:4px;">Enter a <strong>Gemini</strong> or <strong>OpenRouter</strong> key to get started:</p>
+      <div class="onboard-field">
+        <label class="settings-label">Gemini API Key <span class="settings-hint">— <a href="https://aistudio.google.com/app/apikey" target="_blank">Get free key ↗</a></span></label>
+        <div class="settings-row">
+          <input type="password" id="onboard-gemini-input" class="settings-input" placeholder="AIza..." />
+          <button id="onboard-toggle-gemini" class="toggle-vis-btn">👁</button>
+        </div>
+      </div>
+      <div class="onboard-field">
+        <label class="settings-label">OpenRouter API Key <span class="settings-hint">— <a href="https://openrouter.ai/keys" target="_blank">Get key ↗</a></span></label>
+        <div class="settings-row">
+          <input type="password" id="onboard-openrouter-input" class="settings-input" placeholder="sk-or-..." />
+          <button id="onboard-toggle-openrouter" class="toggle-vis-btn">👁</button>
+        </div>
+      </div>
+      <button id="onboard-save-btn" class="primary-btn">Get Started →</button>
+    </div>
+
+    <div id="main-content">
+      <p class="subtitle">Set attendees and avg. salary, then start the clock.</p>
+      <div class="setup-row" style="margin-top:10px;">
+        <div class="setup-field">
+          <span class="setup-label">Attendees</span>
+          <input type="number" id="people-input" class="setup-input" value="4" min="1" max="100" />
+        </div>
+        <div class="setup-field">
+          <span class="setup-label">Avg. salary ($/yr)</span>
+          <input type="number" id="salary-input" class="setup-input" value="100000" min="10000" step="5000" />
+        </div>
+      </div>
+
+      <div class="cost-display">
+        <div class="cost-label">Meeting cost so far</div>
+        <div class="cost-amount"><span class="cost-currency">$</span><span id="cost-dollars">0</span><span class="cost-cents">.<span id="cost-cents">00</span></span></div>
+        <div class="elapsed-time" id="elapsed-time">00:00:00</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-tile">
+          <div class="stat-number" id="stat-rate">$0</div>
+          <div class="stat-label">cost/minute</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-number" id="stat-hourly">$0</div>
+          <div class="stat-label">cost/hour</div>
+        </div>
+      </div>
+
+      <div class="timer-controls">
+        <button class="start-btn" id="start-btn">▶ Start Clock</button>
+        <button class="reset-btn" id="reset-btn">↺ Reset</button>
+      </div>
+
+      <div id="insight-area"></div>
+    </div>
+
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <p class="loading-text">Calculating...</p>
+    </div>
+
+    <div id="result" class="hidden">
+      <div id="result-content" class="result-content"></div>
+    </div>
+
+    <div id="error" class="hidden">
+      <p class="error-text" id="error-message">Something went wrong.</p>
+      <button id="retry-btn" class="secondary-btn">Retry</button>
+    </div>
+
+    <div id="settings-panel" class="hidden">
+      <div class="settings-header">
+        <span>API Settings</span>
+        <button id="settings-close" class="settings-close">✕</button>
+      </div>
+      <div class="settings-body">
+        <label class="settings-label">Gemini API Key</label>
+        <div class="settings-row">
+          <input type="password" id="gemini-key-input" class="settings-input" placeholder="Paste Gemini key..." />
+          <button id="toggle-gemini-key" class="toggle-vis-btn">👁</button>
+        </div>
+        <label class="settings-label">OpenRouter API Key <span class="settings-hint">(fallback)</span></label>
+        <div class="settings-row">
+          <input type="password" id="openrouter-key-input" class="settings-input" placeholder="Paste OpenRouter key..." />
+          <button id="toggle-openrouter-key" class="toggle-vis-btn">👁</button>
+        </div>
+        <div class="settings-actions">
+          <button id="save-keys-btn" class="primary-btn" style="padding:8px 12px;font-size:12px;">Save Keys</button>
+          <button id="clear-keys-btn" class="secondary-btn">Clear All Keys</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>Built by <a href="https://x.com/happy_ships" target="_blank">@happy_ships</a></span>
+      <span>Day 12/180</span>
+    </div>
+  </div>
+
+  <script src="gemini.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
