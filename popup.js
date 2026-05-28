@@ -138,9 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
       startTimestamp = performance.now();
       insightGenerated = false;
       startBtn.textContent = '⏸ Pause';
-      startBtn.style.background = 'rgba(6,182,212,0.2)';
-      startBtn.style.color = '#06b6d4';
-      startBtn.style.border = '1px solid rgba(6,182,212,0.3)';
+      startBtn.style.background = 'rgba(20,184,166,0.2)';
+      startBtn.style.color = '#14b8a6';
+      startBtn.style.border = '1px solid rgba(20,184,166,0.3)';
       updateStats();
       rafId = requestAnimationFrame(tick);
     } else {
