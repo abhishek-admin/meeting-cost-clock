@@ -1,5 +1,5 @@
 // ============================================
-// POPUP.JS — Meeting Cost Clock
+// POPUP.JS — Meeting Cost Clock (Premium Animated)
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,13 +29,117 @@ document.addEventListener('DOMContentLoaded', () => {
   const statRate = document.getElementById('stat-rate');
   const statHourly = document.getElementById('stat-hourly');
   const insightArea = document.getElementById('insight-area');
+  const costDisplay = document.getElementById('cost-display');
+  const costRing = document.getElementById('cost-ring');
+  const progressBar = document.getElementById('progress-bar');
 
   let running = false;
   let startTimestamp = null;
   let pausedElapsed = 0;
   let rafId = null;
   let insightGenerated = false;
-  let insightMinutes = [2, 5, 15, 30, 60]; // minutes at which to show Gemini insights
+  let insightMinutes = [2, 5, 15, 30, 60];
+  let displayCost = 0;
+  let lastMinute = -1;
+  let lastDollarMilestone = -1;
+  let prevDollarsStr = '';
+
+  // ---- Smooth digit rendering with roll effect ----
+  function renderCost(cost) {
+    const dollars = Math.floor(cost);
+    const cents = Math.floor((cost - dollars) * 100);
+    const newDollarsStr = dollars.toLocaleString();
+
+    if (newDollarsStr !== prevDollarsStr) {
+      costDollars.style.transition = 'none';
+      costDollars.style.transform = 'translateY(-4px)';
+      costDollars.style.opacity = '0.6';
+      requestAnimationFrame(() => {
+        costDollars.style.transition = 'transform 0.15s ease-out, opacity 0.15s ease-out';
+        costDollars.style.transform = 'translateY(0)';
+        costDollars.style.opacity = '1';
+      });
+      prevDollarsStr = newDollarsStr;
+    }
+    costDollars.textContent = newDollarsStr;
+    costCents.textContent = cents.toString().padStart(2, '0');
+  }
+
+  // ---- Cost color tiers ----
+  function updateCostTier(cost) {
+    costDisplay.classList.remove('cost-tier-low', 'cost-tier-mid', 'cost-tier-high');
+    if (cost >= 500) {
+      costDisplay.classList.add('cost-tier-high');
+    } else if (cost >= 100) {
+      costDisplay.classList.add('cost-tier-mid');
+    } else {
+      costDisplay.classList.add('cost-tier-low');
+    }
+  }
+
+  // ---- Progress ring (fills over 60 min) ----
+  function updateRing(elapsedMs) {
+    const maxMs = 60 * 60 * 1000;
+    const progress = Math.min(elapsedMs / maxMs, 1);
+    const circumference = 283;
+    const offset = circumference - (progress * circumference);
+    costRing.style.strokeDashoffset = offset;
+  }
+
+  // ---- Bottom progress bar ----
+  function updateProgressBar(elapsedMs) {
+    const maxMs = 60 * 60 * 1000;
+    const pct = Math.min((elapsedMs / maxMs) * 100, 100);
+    progressBar.style.width = pct + '%';
+  }
+
+  // ---- Sparkle burst on dollar milestones ----
+  function spawnSparkles() {
+    const container = costDisplay;
+    const rect = container.getBoundingClientRect();
+    for (let i = 0; i < 8; i++) {
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle';
+      const angle = (i / 8) * Math.PI * 2;
+      const distance = 30 + Math.random() * 25;
+      const x = Math.cos(angle) * distance;
+      const y = Math.sin(angle) * distance;
+      sparkle.style.cssText = `
+        position: absolute;
+        left: 50%; top: 50%;
+        margin-left: ${x}px; margin-top: ${y}px;
+        width: ${3 + Math.random() * 3}px;
+        height: ${3 + Math.random() * 3}px;
+        animation-delay: ${Math.random() * 0.15}s;
+        animation-duration: ${0.5 + Math.random() * 0.3}s;
+      `;
+      container.appendChild(sparkle);
+      setTimeout(() => sparkle.remove(), 900);
+    }
+  }
+
+  // ---- Milestone pop + sparkles ----
+  function checkMilestone(cost) {
+    const dollarMark = Math.floor(cost);
+    const milestones = [1, 5, 10, 25, 50, 100, 200, 500, 1000];
+    for (const m of milestones) {
+      if (dollarMark >= m && lastDollarMilestone < m) {
+        lastDollarMilestone = m;
+        const amountEl = costDisplay.querySelector('.cost-amount');
+        amountEl.classList.remove('milestone-pop');
+        void amountEl.offsetWidth;
+        amountEl.classList.add('milestone-pop');
+        spawnSparkles();
+        setTimeout(() => amountEl.classList.remove('milestone-pop'), 600);
+        break;
+      }
+    }
+  }
+
+  // ---- Ambient glow activation ----
+  function setAmbient(active) {
+    document.querySelector('.container').classList.toggle('ambient-active', active);
+  }
 
   // ---- Onboarding ----
   const onboarding = document.getElementById('onboarding');
@@ -58,7 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   onboardSaveBtn.addEventListener('click', () => {
     const gk = onboardGeminiInput.value.trim(), ok = onboardOpenrouterInput.value.trim();
-    if (!gk && !ok) { onboardSaveBtn.textContent = '⚠️ Enter at least one key'; setTimeout(() => { onboardSaveBtn.textContent = 'Get Started →'; }, 2000); return; }
+    if (!gk && !ok) {
+      onboardSaveBtn.textContent = '⚠️ Enter at least one key';
+      setTimeout(() => { onboardSaveBtn.textContent = 'Get Started →'; }, 2000);
+      return;
+    }
     const updates = {};
     if (gk) updates.gemini_api_key = gk;
     if (ok) updates.openrouter_api_key = ok;
@@ -68,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Init ----
   function initApp() {
     mainContent.classList.remove('hidden');
+    updateStats();
     chrome.storage.session.get(['mcc_elapsed', 'mcc_people', 'mcc_salary'], (data) => {
       if (data.mcc_elapsed) {
         pausedElapsed = data.mcc_elapsed;
@@ -90,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const annualSalary = parseFloat(salaryInput.value) || 100000;
     const workingHoursPerYear = 2080;
     const costPerHour = (annualSalary / workingHoursPerYear) * people;
-    return costPerHour / 3600000; // per millisecond
+    return costPerHour / 3600000;
   }
 
   function updateStats() {
@@ -101,21 +210,35 @@ document.addEventListener('DOMContentLoaded', () => {
     statHourly.textContent = `$${Math.round(perHour).toLocaleString()}`;
   }
 
-  function updateDisplay(elapsedMs) {
+  function updateDisplay(elapsedMs, snapCost = true) {
     const totalCost = elapsedMs * getCostPerMs();
-    const dollars = Math.floor(totalCost);
-    const cents = Math.floor((totalCost - dollars) * 100);
-    costDollars.textContent = dollars.toLocaleString();
-    costCents.textContent = cents.toString().padStart(2, '0');
+
+    if (snapCost) {
+      displayCost = totalCost;
+      renderCost(totalCost);
+    }
+
+    updateCostTier(totalCost);
+    updateRing(elapsedMs);
+    updateProgressBar(elapsedMs);
+    checkMilestone(totalCost);
 
     const totalSec = Math.floor(elapsedMs / 1000);
     const h = Math.floor(totalSec / 3600).toString().padStart(2, '0');
     const m = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
     const s = (totalSec % 60).toString().padStart(2, '0');
-    elapsedTime.textContent = `${h}:${m}:${s}`;
+    const timeStr = `${h}:${m}:${s}`;
+    const dot = elapsedTime.querySelector('.live-dot');
+    elapsedTime.textContent = timeStr;
+    if (dot) elapsedTime.prepend(dot);
 
-    // Trigger Gemini insight at milestone minutes
     const minutesElapsed = Math.floor(elapsedMs / 60000);
+    if (minutesElapsed !== lastMinute) {
+      lastMinute = minutesElapsed;
+      elapsedTime.classList.add('minute-tick');
+      setTimeout(() => elapsedTime.classList.remove('minute-tick'), 600);
+    }
+
     const nextMilestone = insightMinutes.find(m => m <= minutesElapsed);
     if (nextMilestone && !insightGenerated) {
       insightGenerated = true;
@@ -123,11 +246,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ---- Timer loop using performance.now() ----
+  // ---- Timer loop ----
   function tick() {
     if (!running) return;
     const elapsedMs = pausedElapsed + (performance.now() - startTimestamp);
-    updateDisplay(elapsedMs);
+    const realCost = elapsedMs * getCostPerMs();
+    displayCost += (realCost - displayCost) * 0.08;
+    renderCost(displayCost);
+    updateDisplay(elapsedMs, false);
     rafId = requestAnimationFrame(tick);
   }
 
@@ -137,10 +263,11 @@ document.addEventListener('DOMContentLoaded', () => {
       running = true;
       startTimestamp = performance.now();
       insightGenerated = false;
+      lastMinute = -1;
       startBtn.textContent = '⏸ Pause';
-      startBtn.style.background = 'rgba(20,184,166,0.2)';
-      startBtn.style.color = '#14b8a6';
-      startBtn.style.border = '1px solid rgba(20,184,166,0.3)';
+      startBtn.classList.add('running');
+      mainContent.classList.add('clock-running');
+      setAmbient(true);
       updateStats();
       rafId = requestAnimationFrame(tick);
     } else {
@@ -148,6 +275,9 @@ document.addEventListener('DOMContentLoaded', () => {
       pausedElapsed += performance.now() - startTimestamp;
       cancelAnimationFrame(rafId);
       startBtn.textContent = '▶ Resume';
+      startBtn.classList.remove('running');
+      mainContent.classList.remove('clock-running');
+      setAmbient(false);
       chrome.storage.session.set({
         mcc_elapsed: pausedElapsed,
         mcc_people: peopleInput.value,
@@ -160,19 +290,28 @@ document.addEventListener('DOMContentLoaded', () => {
     running = false;
     cancelAnimationFrame(rafId);
     pausedElapsed = 0;
+    displayCost = 0;
     insightGenerated = false;
+    lastMinute = -1;
+    lastDollarMilestone = -1;
+    prevDollarsStr = '';
     startTimestamp = null;
-    costDollars.textContent = '0';
-    costCents.textContent = '00';
-    elapsedTime.textContent = '00:00:00';
     startBtn.textContent = '▶ Start Clock';
-    startBtn.style.cssText = '';
+    startBtn.classList.remove('running');
+    mainContent.classList.remove('clock-running');
+    setAmbient(false);
+    renderCost(0);
+    const dot = elapsedTime.querySelector('.live-dot');
+    elapsedTime.textContent = '00:00:00';
+    if (dot) elapsedTime.prepend(dot);
     insightArea.innerHTML = '';
+    costRing.style.strokeDashoffset = 283;
+    progressBar.style.width = '0%';
+    costDisplay.classList.remove('cost-tier-low', 'cost-tier-mid', 'cost-tier-high');
     chrome.storage.session.clear();
     updateStats();
   });
 
-  // Update stats when inputs change
   peopleInput.addEventListener('input', updateStats);
   salaryInput.addEventListener('input', updateStats);
 
@@ -209,13 +348,18 @@ Write ONE punchy, slightly sardonic insight about this in 1-2 sentences. Make it
 
   // ---- Settings panel ----
   function openSettings() {
-    settingsPanel.classList.remove('hidden'); settingsPanel.classList.add('fade-in');
+    settingsPanel.classList.remove('hidden', 'settings-slide-in');
+    void settingsPanel.offsetWidth;
+    settingsPanel.classList.add('settings-slide-in');
     chrome.storage.local.get(['gemini_api_key', 'openrouter_api_key'], (data) => {
       geminiKeyInput.value = data.gemini_api_key || '';
       openrouterKeyInput.value = data.openrouter_api_key || '';
     });
   }
-  function closeSettings() { settingsPanel.classList.add('hidden'); settingsPanel.classList.remove('fade-in'); }
+  function closeSettings() {
+    settingsPanel.classList.add('hidden');
+    settingsPanel.classList.remove('settings-slide-in');
+  }
 
   settingsBtn.addEventListener('click', openSettings);
   settingsClose.addEventListener('click', closeSettings);
@@ -228,13 +372,18 @@ Write ONE punchy, slightly sardonic insight about this in 1-2 sentences. Make it
     if (gk) updates.gemini_api_key = gk;
     if (ok) updates.openrouter_api_key = ok;
     if (!Object.keys(updates).length) return;
-    chrome.storage.local.set(updates, () => { saveKeysBtn.textContent = '✅ Saved'; setTimeout(() => { saveKeysBtn.textContent = 'Save Keys'; }, 1500); });
+    chrome.storage.local.set(updates, () => {
+      saveKeysBtn.textContent = '✅ Saved';
+      setTimeout(() => { saveKeysBtn.textContent = 'Save Keys'; }, 1500);
+    });
   });
 
   clearKeysBtn.addEventListener('click', () => {
     chrome.storage.local.remove(['gemini_api_key', 'openrouter_api_key'], () => {
-      geminiKeyInput.value = ''; openrouterKeyInput.value = '';
-      clearKeysBtn.textContent = '✅ Cleared'; setTimeout(() => { clearKeysBtn.textContent = 'Clear All Keys'; }, 1500);
+      geminiKeyInput.value = '';
+      openrouterKeyInput.value = '';
+      clearKeysBtn.textContent = '✅ Cleared';
+      setTimeout(() => { clearKeysBtn.textContent = 'Clear All Keys'; }, 1500);
     });
   });
 });

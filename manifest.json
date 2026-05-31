@@ -6,9 +6,15 @@
   "permissions": ["storage"],
   "action": {
     "default_popup": "popup.html",
-    "default_icon": { "32": "icons/icons32.png" }
+    "default_icon": {
+      "32": "icons/icons32.png",
+      "128": "icons/icons128.png"
+    }
   },
-  "icons": { "32": "icons/icons32.png" },
+  "icons": {
+    "32": "icons/icons32.png",
+    "128": "icons/icons128.png"
+  },
   "background": { "service_worker": "background.js" },
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
