@@ -6,458 +6,522 @@
   <title>Meeting Cost Clock</title>
   <link rel="stylesheet" href="popup.css">
   <style>
-    :root { --accent: #14b8a6; --accent-rgb: 20,184,166; }
-
-    /* ════════════════════════════════════════
-       KEYFRAMES — PREMIUM ANIMATIONS
-    ════════════════════════════════════════ */
-    @keyframes logoSpin {
-      0%   { transform: rotate(0deg) scale(1);   filter: drop-shadow(0 0 4px rgba(var(--accent-rgb),0.4)); }
-      50%  { transform: rotate(180deg) scale(1.3); filter: drop-shadow(0 0 12px rgba(var(--accent-rgb),0.8)); }
-      100% { transform: rotate(360deg) scale(1);  filter: drop-shadow(0 0 4px rgba(var(--accent-rgb),0.4)); }
-    }
-    @keyframes btnBreath {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0.55); }
-      55%       { box-shadow: 0 0 0 10px rgba(var(--accent-rgb),0); }
-    }
-    @keyframes tileIn {
-      from { opacity: 0; transform: translateY(18px) scale(0.9) rotateX(15deg); }
-      to   { opacity: 1; transform: translateY(0) scale(1) rotateX(0); }
-    }
-    @keyframes costIn {
-      from { opacity: 0; transform: scale(0.85) translateY(15px); filter: blur(8px); }
-      to   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
-    }
-    @keyframes runningPulse {
-      0%, 100% { text-shadow: 0 0 16px rgba(var(--accent-rgb),0.7); opacity: 1; }
-      50%       { text-shadow: 0 0 36px rgba(var(--accent-rgb),1);   opacity: 0.85; }
-    }
-    @keyframes borderSpin {
-      0%   { box-shadow: 0 0 0 1.5px rgba(var(--accent-rgb),0.25), 0 0 20px rgba(var(--accent-rgb),0.12); }
-      50%  { box-shadow: 0 0 0 2px rgba(var(--accent-rgb),0.7),  0 0 30px rgba(var(--accent-rgb),0.3); }
-      100% { box-shadow: 0 0 0 1.5px rgba(var(--accent-rgb),0.25), 0 0 20px rgba(var(--accent-rgb),0.12); }
-    }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(16px); filter: blur(4px); }
-      to   { opacity: 1; transform: translateY(0); filter: blur(0); }
-    }
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-12px); filter: blur(4px); }
-      to   { opacity: 1; transform: translateY(0); filter: blur(0); }
-    }
-    @keyframes dotPulse {
-      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 4px rgba(var(--accent-rgb),0.6); }
-      50%       { opacity: 0.4; transform: scale(0.5); box-shadow: 0 0 12px rgba(var(--accent-rgb),1); }
-    }
-    @keyframes shimmer {
-      0%   { background-position: -200% center; }
-      100% { background-position: 200% center; }
-    }
-    @keyframes ringProgress {
-      from { stroke-dashoffset: 283; }
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes ambientGlow {
-      0%, 100% { opacity: 0.3; }
-      50%       { opacity: 0.6; }
-    }
-    @keyframes digitRoll {
-      from { transform: translateY(-100%); opacity: 0; }
-      to   { transform: translateY(0); opacity: 1; }
-    }
-    @keyframes glassReveal {
-      from { opacity: 0; backdrop-filter: blur(0px); transform: scale(0.97); }
-      to   { opacity: 1; backdrop-filter: blur(12px); transform: scale(1); }
-    }
-    @keyframes headerIn {
-      from { opacity: 0; transform: translateX(-16px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes badgeIn {
-      from { opacity: 0; transform: scale(0.7); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-    @keyframes costMilestone {
-      0%   { transform: scale(1); }
-      30%  { transform: scale(1.08); }
-      60%  { transform: scale(0.97); }
-      100% { transform: scale(1); }
-    }
-    @keyframes sparkle {
-      0%   { opacity: 0; transform: scale(0) rotate(0deg); }
-      50%  { opacity: 1; transform: scale(1) rotate(180deg); }
-      100% { opacity: 0; transform: scale(0) rotate(360deg); }
-    }
-    @keyframes colorShift {
-      0%   { color: #14b8a6; }
-      33%  { color: #f59e0b; }
-      66%  { color: #ef4444; }
-      100% { color: #ef4444; }
+    :root {
+      --accent: #14f1d9;
+      --accent-rgb: 20,184,166;
+      --accent-blue: #00d2ff;
     }
 
-    /* ════════════════════════════════════════
-       AMBIENT BACKGROUND
-    ════════════════════════════════════════ */
-    .ambient-orb {
-      position: fixed;
-      border-radius: 50%;
-      pointer-events: none;
-      filter: blur(60px);
-      opacity: 0;
-      transition: opacity 1s ease;
-    }
-    .ambient-orb-1 {
-      width: 200px; height: 200px;
-      background: radial-gradient(circle, rgba(var(--accent-rgb),0.2), transparent 70%);
-      top: -60px; left: -60px;
-      animation: ambientGlow 4s ease-in-out infinite;
-    }
-    .ambient-orb-2 {
-      width: 150px; height: 150px;
-      background: radial-gradient(circle, rgba(var(--accent-rgb),0.15), transparent 70%);
-      bottom: -40px; right: -40px;
-      animation: ambientGlow 5s ease-in-out infinite 1s;
-    }
-    .ambient-active .ambient-orb { opacity: 1; }
-
-    /* ════════════════════════════════════════
-       LOGO
-    ════════════════════════════════════════ */
-    .logo {
-      display: inline-block;
-      animation: logoSpin 4s ease-in-out infinite;
+    html {
+      background: #010612 !important; /* Masks default Chrome white outer corners */
+      overflow: hidden !important;
     }
 
-    /* ════════════════════════════════════════
-       STAGGERED ENTRANCE — CONTAINER
-    ════════════════════════════════════════ */
+    body {
+      width: 380px;
+      min-height: 520px;
+      background: radial-gradient(circle at 50% 15%, #051a3a 0%, #010612 100%) !important;
+      color: #ffffff;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden !important;
+      padding: 0 !important; /* Full bleed edge-to-edge */
+      margin: 0;
+    }
+
     .container {
-      position: relative;
+      background: rgba(10, 25, 50, 0.3) !important;
+      backdrop-filter: blur(25px) !important;
+      border: none !important; /* No inset borders to prevent sharp corner leakages */
+      border-radius: 0 !important; /* In full-bleed layout, container fits body perfectly */
+      padding: 20px !important;
+      box-shadow: none !important;
+      display: flex;
+      flex-direction: column;
+      gap: 16px !important;
+      min-height: 520px !important;
+      width: 100% !important;
+      margin: 0 !important;
+      position: relative !important;
       overflow: hidden;
     }
-    .header {
-      animation: headerIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.05s both;
-    }
-    .badge {
-      animation: badgeIn 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
-    }
-    .subtitle {
-      animation: fadeInUp 0.45s ease-out 0.15s both;
-    }
-    .setup-row {
-      animation: fadeInUp 0.45s ease-out 0.25s both;
-    }
 
-    /* ════════════════════════════════════════
-       ONBOARDING
-    ════════════════════════════════════════ */
-    #onboarding { display: flex; flex-direction: column; gap: 10px; }
-    .onboarding-title { font-size: 15px; font-weight: 700; color: #e0e0e8; }
-    .onboarding-desc { font-size: 12px; color: #8888a0; line-height: 1.65; }
-    .onboarding-desc strong { color: #c8c8dc; }
-    .onboard-field { display: flex; flex-direction: column; gap: 5px; }
-    .settings-hint a { color: var(--accent); text-decoration: none; }
-    .settings-hint a:hover { text-decoration: underline; }
-
-    /* ════════════════════════════════════════
-       SETUP INPUTS — GLASS STYLE
-    ════════════════════════════════════════ */
-    .setup-row { display: flex; gap: 8px; margin-bottom: 8px; }
-    .setup-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-    .setup-label {
-      font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
-      text-transform: uppercase; color: #555568;
-      transition: color 0.3s;
-    }
-    .setup-input {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px; padding: 9px 12px; color: #e0e0e8; font-size: 13px;
-      font-family: inherit; outline: none; width: 100%; box-sizing: border-box;
-      transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
-      backdrop-filter: blur(8px);
-    }
-    .setup-input:focus {
-      border-color: rgba(var(--accent-rgb),0.6);
-      box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12), 0 0 20px rgba(var(--accent-rgb),0.08);
-      background: rgba(var(--accent-rgb),0.03);
-    }
-    .setup-input:focus + .setup-label,
-    .setup-field:focus-within .setup-label { color: rgba(var(--accent-rgb),0.7); }
-
-    /* ════════════════════════════════════════
-       COST DISPLAY — PREMIUM RING
-    ════════════════════════════════════════ */
-    .cost-display {
-      text-align: center; padding: 18px 0 12px;
-      animation: costIn 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.3s both;
-      position: relative;
-    }
-    .cost-ring-container {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 130px;
-      height: 130px;
-      margin-bottom: 8px;
-      isolation: isolate;
-    }
-    .cost-ring-svg {
+    /* Ambient glow orbs */
+    .ambient-orb {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      border-radius: 50%;
       pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.6s ease;
+      filter: blur(50px);
+      opacity: 0.15;
       z-index: 0;
     }
-    #main-content.clock-running .cost-ring-svg { opacity: 1; }
-    .cost-ring-bg {
-      fill: none; stroke: rgba(255,255,255,0.04); stroke-width: 2.5;
+    .ambient-orb-1 {
+      width: 150px;
+      height: 150px;
+      background: #14f1d9;
+      top: -30px;
+      left: -30px;
     }
-    .cost-ring-progress {
-      fill: none; stroke: url(#ringGradient); stroke-width: 2.5;
-      stroke-linecap: round;
-      stroke-dasharray: 283;
-      stroke-dashoffset: 283;
-      transform: rotate(-90deg);
-      transform-origin: center;
-      transition: stroke-dashoffset 1s ease-out;
+    .ambient-orb-2 {
+      width: 120px;
+      height: 120px;
+      background: #00d2ff;
+      bottom: -20px;
+      right: -20px;
     }
-    .cost-label {
-      font-size: 9px; font-weight: 700; letter-spacing: 0.8px;
-      text-transform: uppercase; color: #555568; margin-bottom: 8px;
-      transition: color 0.5s;
-    }
-    #main-content.clock-running .cost-label { color: rgba(var(--accent-rgb),0.5); }
-    .cost-amount {
-      font-size: 46px; font-weight: 800; color: var(--accent);
-      font-variant-numeric: tabular-nums; letter-spacing: -1.5px;
-      line-height: 1; margin-bottom: 4px;
-      transition: text-shadow 0.4s ease, color 1.5s ease;
-      display: inline-flex;
-      align-items: center;
-      position: relative;
+
+    /* Header Section */
+    .header {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      margin-bottom: 4px !important;
       z-index: 1;
     }
+    .header-left {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
+    .header-left h1 {
+      font-size: 16px !important;
+      font-weight: 700 !important;
+      color: #ffffff !important;
+      letter-spacing: -0.3px !important;
+    }
+    .logo {
+      font-size: 18px !important;
+      color: #14f1d9 !important;
+      text-shadow: 0 0 12px rgba(20, 241, 217, 0.8) !important;
+    }
+
+    .badge {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.8px !important;
+      color: #00d2ff !important;
+      background: rgba(0, 210, 255, 0.1) !important;
+      padding: 4px 10px !important;
+      border-radius: 99px !important;
+      border: 1px solid rgba(0, 210, 255, 0.25) !important;
+    }
+    .badge::before {
+      content: "🔗";
+      font-size: 8px;
+      opacity: 0.8;
+    }
+
+    .settings-btn {
+      background: none !important;
+      border: none !important;
+      color: #8da2bb !important;
+      font-size: 15px !important;
+      cursor: pointer !important;
+      transition: color 0.2s !important;
+      margin-left: 6px;
+    }
+    .settings-btn:hover {
+      color: #14f1d9 !important;
+    }
+
+    /* Subtitle */
+    .subtitle {
+      font-size: 11px !important;
+      color: #8da2bb !important;
+      margin-top: -6px !important;
+      z-index: 1;
+    }
+
+    /* Input Setup Row */
+    .setup-row {
+      display: flex !important;
+      gap: 12px !important;
+      margin: 4px 0 !important;
+      z-index: 1;
+    }
+    .setup-field {
+      flex: 1 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 6px !important;
+    }
+    .setup-label {
+      font-size: 11px !important;
+      font-weight: 500 !important;
+      color: #8da2bb !important;
+      text-transform: none !important;
+      letter-spacing: 0px !important;
+    }
+    .setup-input {
+      background: rgba(255, 255, 255, 0.03) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 8px !important;
+      padding: 10px 12px !important;
+      color: #ffffff !important;
+      font-size: 14px !important;
+      font-family: inherit !important;
+      outline: none !important;
+      width: 100% !important;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.2) !important;
+      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s !important;
+      backdrop-filter: blur(5px) !important;
+    }
+    .setup-input:focus {
+      border-color: rgba(20, 241, 217, 0.5) !important;
+      box-shadow: 0 0 10px rgba(20, 241, 217, 0.2), inset 0 1px 2px rgba(0,0,0,0.2) !important;
+      background: rgba(20, 241, 217, 0.02) !important;
+    }
+
+    /* Cost Display & Circle */
+    .cost-display {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      padding: 15px 0 !important;
+      position: relative !important;
+      z-index: 1;
+    }
+    .cost-label {
+      display: none !important;
+    }
+    .cost-ring-container {
+      position: relative !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 160px !important;
+      height: 160px !important;
+      margin-bottom: 0px !important;
+      isolation: isolate !important;
+    }
+    .cost-ring-svg {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 0 !important;
+    }
+    .cost-ring-bg {
+      fill: none !important;
+      stroke: rgba(255, 255, 255, 0.04) !important;
+      stroke-width: 4px !important;
+    }
+    .cost-ring-progress {
+      fill: none !important;
+      stroke: url(#ringGradient) !important;
+      stroke-width: 4px !important;
+      stroke-linecap: round !important;
+      stroke-dasharray: 283 !important;
+      stroke-dashoffset: 283 !important;
+      transform: rotate(-90deg) !important;
+      transform-origin: center !important;
+      transition: stroke-dashoffset 0.5s ease-out !important;
+      filter: drop-shadow(0 0 6px #14f1d9) !important;
+    }
+    .cost-amount {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: absolute !important;
+      z-index: 2 !important;
+      font-family: inherit !important;
+    }
+    #cost-dollars, .cost-currency, #cost-cents, .cost-cents, .cost-separator {
+      font-size: 32px !important;
+      font-weight: 700 !important;
+      color: #ffffff !important;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.1) !important;
+      letter-spacing: -0.5px !important;
+      opacity: 1 !important;
+      background: none !important;
+    }
     .cost-currency {
-      font-size: 24px; margin-right: 2px; font-weight: 700;
-      opacity: 0.7;
-      align-self: flex-start;
-      margin-top: 5px;
+      font-size: 32px !important;
+      align-self: auto !important;
+      margin-top: 0 !important;
+      margin-right: 0 !important;
     }
     .cost-cents {
-      font-size: 24px; font-weight: 700; color: var(--accent); opacity: 0.5;
-      transition: color 1.5s ease;
-      align-self: flex-end;
-      margin-bottom: 5px;
+      font-size: 32px !important;
+      align-self: auto !important;
+      margin-bottom: 0 !important;
+      opacity: 1 !important;
+      color: #ffffff !important;
     }
     .cost-separator {
-      font-size: 24px; font-weight: 700; opacity: 0.3;
+      font-size: 32px !important;
+      opacity: 1 !important;
     }
     .elapsed-time {
-      font-size: 12px; color: #555568; margin-top: 8px;
-      font-variant-numeric: tabular-nums;
-      transition: color 0.5s ease;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      letter-spacing: 1px;
+      position: absolute !important;
+      bottom: 35px !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      color: #8da2bb !important;
+      letter-spacing: 0.5px !important;
+      margin-top: 0 !important;
+      z-index: 2 !important;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     .live-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--accent); display: none;
-      animation: dotPulse 1.2s ease-in-out infinite;
-    }
-    #main-content.clock-running .live-dot { display: inline-block; }
-    #main-content.clock-running .elapsed-time { color: rgba(var(--accent-rgb),0.7); }
-
-    .minute-tick {
-      color: rgba(var(--accent-rgb),1) !important;
-      text-shadow: 0 0 12px rgba(var(--accent-rgb),0.5);
-    }
-
-    /* ════════════════════════════════════════
-       SPARKLE PARTICLES — on milestones
-    ════════════════════════════════════════ */
-    .sparkle-container {
-      position: absolute;
-      top: 50%; left: 50%;
-      pointer-events: none;
-    }
-    .sparkle {
-      position: absolute;
-      width: 4px; height: 4px;
-      background: var(--accent);
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      animation: sparkle 0.7s ease-out forwards;
+      background: #14f1d9;
+      display: none;
+      box-shadow: 0 0 8px #14f1d9;
+    }
+    #main-content.clock-running .live-dot {
+      display: inline-block;
     }
 
-    /* ════════════════════════════════════════
-       STATS GRID — GLASS TILES
-    ════════════════════════════════════════ */
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+    /* Breakdown Tiles */
+    .stats-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 12px !important;
+      margin: 6px 0 !important;
+      z-index: 1;
+    }
     .stat-tile {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 10px; padding: 10px 12px; text-align: center;
-      opacity: 0;
-      transition: transform 0.25s ease-out, border-color 0.25s ease-out,
-                  background 0.25s ease-out, box-shadow 0.25s ease-out;
-      backdrop-filter: blur(8px);
-      position: relative;
-      overflow: hidden;
+      background: rgba(255, 255, 255, 0.02) !important;
+      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+      border-radius: 12px !important;
+      padding: 12px 10px !important;
+      text-align: center !important;
+      backdrop-filter: blur(5px) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      align-items: center !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+      opacity: 1 !important;
     }
-    .stat-tile::before {
-      content: '';
-      position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb),0.06), transparent);
-      transition: left 0.5s ease;
-    }
-    .stat-tile:hover::before { left: 100%; }
-    .stat-tile:hover {
-      transform: translateY(-4px) scale(1.02);
-      border-color: rgba(var(--accent-rgb),0.35);
-      background: rgba(var(--accent-rgb),0.06);
-      box-shadow: 0 6px 20px rgba(var(--accent-rgb),0.12);
-    }
-    .stats-grid .stat-tile:nth-child(1) { animation: tileIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.4s forwards; }
-    .stats-grid .stat-tile:nth-child(2) { animation: tileIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.55s forwards; }
     .stat-number {
-      font-size: 17px; font-weight: 700; color: #e0e0e8;
-      font-variant-numeric: tabular-nums;
-      transition: color 0.3s;
+      font-size: 24px !important;
+      font-weight: 700 !important;
+      color: #ffffff !important;
+      letter-spacing: -0.5px !important;
     }
-    .stat-tile:hover .stat-number { color: var(--accent); }
     .stat-label {
-      font-size: 9px; color: #555568; text-transform: uppercase;
-      letter-spacing: 0.5px; margin-top: 3px;
+      font-size: 11px !important;
+      color: #8da2bb !important;
+      text-transform: none !important;
+      letter-spacing: 0px !important;
+      margin-top: 0px !important;
+      margin-bottom: 6px !important;
+      order: -1 !important; /* Put labels on TOP */
     }
 
-    /* ════════════════════════════════════════
-       TIMER CONTROLS — SHIMMER BUTTON
-    ════════════════════════════════════════ */
+    /* Controls Buttons */
     .timer-controls {
-      display: flex; gap: 8px; margin-top: 6px;
-      animation: fadeInUp 0.45s ease-out 0.6s both;
+      display: flex !important;
+      gap: 12px !important;
+      margin-top: 8px !important;
+      z-index: 1;
     }
     .start-btn {
-      flex: 1;
-      background: linear-gradient(135deg, rgba(var(--accent-rgb),0.9), rgba(var(--accent-rgb),1));
-      color: #0a0a0f;
-      border: 1px solid transparent; border-radius: 10px; padding: 11px;
-      font-size: 13px; font-weight: 700; cursor: pointer;
-      animation: btnBreath 2.5s ease-in-out infinite;
-      transition: background 0.3s ease-out, color 0.3s ease-out,
-                  border-color 0.3s ease-out, transform 0.12s ease-out, opacity 0.15s;
-      position: relative;
-      overflow: hidden;
+      flex: 1.8 !important;
+      background: linear-gradient(90deg, #14f1d9 0%, #00d2ff 100%) !important;
+      color: #020b1e !important;
+      border: none !important;
+      border-radius: 12px !important;
+      padding: 12px !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      cursor: pointer !important;
+      box-shadow: 0 0 15px rgba(20, 241, 217, 0.3) !important;
+      transition: all 0.2s ease !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
-    .start-btn::before {
-      content: '';
-      position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      animation: shimmer 3s ease-in-out infinite;
+    .start-btn:hover {
+      opacity: 0.95 !important;
+      box-shadow: 0 0 20px rgba(20, 241, 217, 0.5) !important;
     }
-    .start-btn:hover { opacity: 0.92; animation: none; }
-    .start-btn:active { transform: scale(0.96); }
+    .start-btn:active {
+      transform: scale(0.97) !important;
+    }
     .start-btn.running {
-      background: rgba(var(--accent-rgb),0.1);
-      color: var(--accent);
-      border-color: rgba(var(--accent-rgb),0.45);
-      animation: borderSpin 2s ease-in-out infinite;
+      background: linear-gradient(90deg, #ff4e50 0%, #f9d423 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 15px rgba(255, 78, 80, 0.3) !important;
     }
-    .start-btn.running::before { display: none; }
 
     .reset-btn {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      color: #8888a0; border-radius: 10px; padding: 11px 16px;
-      font-size: 12px; cursor: pointer;
-      transition: color 0.2s, background 0.2s, transform 0.12s, border-color 0.2s;
+      flex: 1 !important;
+      background: rgba(255, 255, 255, 0.03) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #ffffff !important;
+      border-radius: 12px !important;
+      padding: 12px !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
     }
     .reset-btn:hover {
-      color: #e0e0e8; border-color: rgba(255,255,255,0.2);
-      background: rgba(255,255,255,0.08);
+      background: rgba(255, 255, 255, 0.06) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
     }
-    .reset-btn:active { transform: scale(0.95); }
-
-    /* ════════════════════════════════════════
-       RUNNING COST GLOW
-    ════════════════════════════════════════ */
-    #main-content.clock-running .cost-amount {
-      animation: runningPulse 1.6s ease-in-out infinite;
-    }
-    #main-content.clock-running .cost-display {
-      position: relative;
+    .reset-btn:active {
+      transform: scale(0.97) !important;
     }
 
-    /* ════════════════════════════════════════
-       COST COLOR TIERS
-    ════════════════════════════════════════ */
-    .cost-tier-low .cost-amount, .cost-tier-low .cost-cents { color: #14b8a6; }
-    .cost-tier-mid .cost-amount, .cost-tier-mid .cost-cents { color: #f59e0b; }
-    .cost-tier-high .cost-amount, .cost-tier-high .cost-cents { color: #ef4444; }
-    .cost-tier-mid .cost-ring-progress { stroke: #f59e0b !important; }
-    .cost-tier-high .cost-ring-progress { stroke: #ef4444 !important; }
-    .cost-tier-mid .live-dot { background: #f59e0b; }
-    .cost-tier-high .live-dot { background: #ef4444; }
+    /* Onboarding styles */
+    #onboarding {
+      display: flex;
+      flex-direction: column;
+      gap: 12px !important;
+      z-index: 1;
+    }
+    .onboarding-title {
+      font-size: 16px !important;
+      font-weight: 700 !important;
+      color: #ffffff !important;
+    }
+    .onboarding-desc {
+      font-size: 12px !important;
+      color: #8da2bb !important;
+      line-height: 1.6 !important;
+    }
+    .onboard-field {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 6px !important;
+    }
 
-    /* ════════════════════════════════════════
-       GEMINI INSIGHT — GLASS CARD
-    ════════════════════════════════════════ */
+    .floating-toggle-row {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      margin-top: 10px !important;
+      font-size: 11px !important;
+      color: #8da2bb !important;
+      cursor: pointer !important;
+      z-index: 1;
+      user-select: none !important;
+    }
+    .floating-toggle-row input {
+      accent-color: #14f1d9 !important;
+      cursor: pointer !important;
+    }
+
+    /* Settings Panel */
+    #settings-panel {
+      position: absolute !important;
+      left: 20px !important;
+      right: 20px !important;
+      top: 60px !important;
+      z-index: 100 !important;
+      padding: 20px !important;
+      border-radius: 16px !important;
+      background: rgba(5, 15, 35, 0.95) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+      backdrop-filter: blur(20px) !important;
+    }
+    .settings-header {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      margin-bottom: 12px !important;
+    }
+    .settings-close {
+      background: none !important;
+      border: none !important;
+      color: #8da2bb !important;
+      font-size: 16px !important;
+      cursor: pointer !important;
+    }
+    .settings-close:hover {
+      color: #ffffff !important;
+    }
+    .settings-body {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+    }
+    .settings-actions {
+      display: flex !important;
+      gap: 8px !important;
+      margin-top: 10px !important;
+    }
+
+    /* Gemini Insight Card */
     .insight-card {
-      background: rgba(var(--accent-rgb),0.06);
-      border: 1px solid rgba(var(--accent-rgb),0.15);
-      border-radius: 10px; padding: 10px 13px; margin-top: 10px;
-      font-size: 11.5px; color: #a0c8d0; line-height: 1.6;
-      animation: slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
-      backdrop-filter: blur(8px);
+      background: rgba(0, 210, 255, 0.05) !important;
+      border: 1px solid rgba(0, 210, 255, 0.15) !important;
+      border-radius: 12px !important;
+      padding: 12px 14px !important;
+      margin-top: 12px !important;
+      font-size: 12px !important;
+      color: #a0c8d0 !important;
+      line-height: 1.6 !important;
+      backdrop-filter: blur(5px) !important;
+      z-index: 1;
     }
     .insight-label {
-      font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
-      text-transform: uppercase; color: var(--accent); margin-bottom: 5px;
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.5px !important;
+      color: #00d2ff !important;
+      text-transform: uppercase !important;
+      margin-bottom: 4px !important;
     }
-    .insight-loading { color: #555568; font-style: italic; }
 
-    /* ════════════════════════════════════════
-       SETTINGS PANEL
-    ════════════════════════════════════════ */
-    .settings-slide-in { animation: slideDown 0.3s cubic-bezier(0.34,1.3,0.64,1) forwards; }
-
-    /* ════════════════════════════════════════
-       FOOTER — SUBTLE ENTRANCE
-    ════════════════════════════════════════ */
+    /* Footer & details */
     .footer {
-      animation: fadeInUp 0.4s ease-out 0.7s both;
+      display: flex !important;
+      justify-content: space-between !important;
+      font-size: 10px !important;
+      color: #556b82 !important;
+      padding-top: 10px !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+      margin-top: auto !important;
+      z-index: 1;
+    }
+    .footer a {
+      color: #00d2ff !important;
+      text-decoration: none !important;
+    }
+    .footer a:hover {
+      text-decoration: underline !important;
     }
 
-    /* ════════════════════════════════════════
-       COST MILESTONE POP
-    ════════════════════════════════════════ */
-    .milestone-pop {
-      animation: costMilestone 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    .hidden {
+      display: none !important;
     }
 
-    /* ════════════════════════════════════════
-       PROGRESS BAR — BOTTOM
-    ════════════════════════════════════════ */
+    /* Progress bar */
     .progress-bar-container {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 2px;
-      background: rgba(255,255,255,0.03);
-      overflow: hidden;
-      border-radius: 0 0 0 0;
+      position: absolute !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 3px !important;
+      background: rgba(255, 255, 255, 0.02) !important;
+      overflow: hidden !important;
+      z-index: 1;
     }
     .progress-bar-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb),0.4));
-      transition: width 1s ease-out;
-      box-shadow: 0 0 8px rgba(var(--accent-rgb),0.4);
+      height: 100% !important;
+      width: 0% !important;
+      background: linear-gradient(90deg, #14f1d9, #00d2ff) !important;
+      box-shadow: 0 0 8px #14f1d9 !important;
     }
   </style>
 </head>
@@ -507,7 +571,7 @@
           <input type="number" id="people-input" class="setup-input" value="4" min="1" max="100" />
         </div>
         <div class="setup-field">
-          <span class="setup-label">Avg. salary ($/yr)</span>
+          <span class="setup-label">Avg. Salary</span>
           <input type="number" id="salary-input" class="setup-input" value="100000" min="10000" step="5000" />
         </div>
       </div>
@@ -546,6 +610,12 @@
       <div class="timer-controls">
         <button class="start-btn" id="start-btn">▶ Start Clock</button>
         <button class="reset-btn" id="reset-btn">↺ Reset</button>
+      </div>
+
+      <!-- Floating toggle -->
+      <div class="floating-toggle-row">
+        <input type="checkbox" id="floating-toggle" />
+        <label for="floating-toggle">Keep overlay open across tabs (Glass Widget)</label>
       </div>
 
       <div id="insight-area"></div>

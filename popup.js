@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const costDisplay = document.getElementById('cost-display');
   const costRing = document.getElementById('cost-ring');
   const progressBar = document.getElementById('progress-bar');
+  const floatingToggle = document.getElementById('floating-toggle');
 
   let running = false;
   let startTimestamp = null;
@@ -177,13 +178,31 @@ document.addEventListener('DOMContentLoaded', () => {
   function initApp() {
     mainContent.classList.remove('hidden');
     updateStats();
-    chrome.storage.session.get(['mcc_elapsed', 'mcc_people', 'mcc_salary'], (data) => {
-      if (data.mcc_elapsed) {
-        pausedElapsed = data.mcc_elapsed;
-        if (data.mcc_people) peopleInput.value = data.mcc_people;
-        if (data.mcc_salary) salaryInput.value = data.mcc_salary;
-        updateDisplay(pausedElapsed);
+    chrome.storage.local.get(['mcc_running', 'mcc_start_time', 'mcc_elapsed', 'mcc_people', 'mcc_salary', 'mcc_floating'], (data) => {
+      if (data.mcc_people) peopleInput.value = data.mcc_people;
+      if (data.mcc_salary) salaryInput.value = data.mcc_salary;
+      if (data.mcc_floating) floatingToggle.checked = !!data.mcc_floating;
+
+      pausedElapsed = data.mcc_elapsed || 0;
+
+      if (data.mcc_running) {
+        running = true;
+        startTimestamp = data.mcc_start_time || Date.now();
+        startBtn.textContent = '⏸ Pause';
+        startBtn.classList.add('running');
+        mainContent.classList.add('clock-running');
+        setAmbient(true);
         updateStats();
+        rafId = requestAnimationFrame(tick);
+      } else {
+        running = false;
+        if (pausedElapsed > 0) {
+          updateDisplay(pausedElapsed);
+          startBtn.textContent = '▶ Resume';
+        } else {
+          updateDisplay(0);
+          startBtn.textContent = '▶ Start Clock';
+        }
       }
     });
   }
@@ -249,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Timer loop ----
   function tick() {
     if (!running) return;
-    const elapsedMs = pausedElapsed + (performance.now() - startTimestamp);
+    const elapsedMs = pausedElapsed + (Date.now() - startTimestamp);
     const realCost = elapsedMs * getCostPerMs();
     displayCost += (realCost - displayCost) * 0.08;
     renderCost(displayCost);
@@ -261,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
   startBtn.addEventListener('click', () => {
     if (!running) {
       running = true;
-      startTimestamp = performance.now();
+      startTimestamp = Date.now();
       insightGenerated = false;
       lastMinute = -1;
       startBtn.textContent = '⏸ Pause';
@@ -269,19 +288,50 @@ document.addEventListener('DOMContentLoaded', () => {
       mainContent.classList.add('clock-running');
       setAmbient(true);
       updateStats();
+
+      // Save to local storage
+      chrome.storage.local.set({
+        mcc_running: true,
+        mcc_start_time: startTimestamp,
+        mcc_elapsed: pausedElapsed,
+        mcc_people: peopleInput.value,
+        mcc_salary: salaryInput.value
+      });
+
+      // Notify floating widget
+      chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'syncFloatingWidget' }, (res) => {
+            if (chrome.runtime.lastError) { /* Silent discard on restricted pages */ }
+          });
+        }
+      });
+
       rafId = requestAnimationFrame(tick);
     } else {
       running = false;
-      pausedElapsed += performance.now() - startTimestamp;
+      pausedElapsed += Date.now() - startTimestamp;
       cancelAnimationFrame(rafId);
       startBtn.textContent = '▶ Resume';
       startBtn.classList.remove('running');
       mainContent.classList.remove('clock-running');
       setAmbient(false);
-      chrome.storage.session.set({
+
+      // Save to local storage
+      chrome.storage.local.set({
+        mcc_running: false,
         mcc_elapsed: pausedElapsed,
         mcc_people: peopleInput.value,
-        mcc_salary: salaryInput.value,
+        mcc_salary: salaryInput.value
+      });
+
+      // Notify floating widget
+      chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'syncFloatingWidget' }, (res) => {
+            if (chrome.runtime.lastError) { /* Silent discard on restricted pages */ }
+          });
+        }
       });
     }
   });
@@ -308,12 +358,74 @@ document.addEventListener('DOMContentLoaded', () => {
     costRing.style.strokeDashoffset = 283;
     progressBar.style.width = '0%';
     costDisplay.classList.remove('cost-tier-low', 'cost-tier-mid', 'cost-tier-high');
-    chrome.storage.session.clear();
+
+    // Clear relevant keys in local storage
+    chrome.storage.local.remove(['mcc_running', 'mcc_start_time', 'mcc_elapsed']);
+
+    // Notify floating widget
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'syncFloatingWidget' }, (res) => {
+          if (chrome.runtime.lastError) { /* Silent discard on restricted pages */ }
+        });
+      }
+    });
+
     updateStats();
   });
 
-  peopleInput.addEventListener('input', updateStats);
-  salaryInput.addEventListener('input', updateStats);
+  peopleInput.addEventListener('input', () => {
+    updateStats();
+    chrome.storage.local.set({ mcc_people: peopleInput.value });
+    // Notify floating widget
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'syncFloatingWidget' }, (res) => {
+          if (chrome.runtime.lastError) { /* Silent discard on restricted pages */ }
+        });
+      }
+    });
+  });
+
+  salaryInput.addEventListener('input', () => {
+    updateStats();
+    chrome.storage.local.set({ mcc_salary: salaryInput.value });
+    // Notify floating widget
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'syncFloatingWidget' }, (res) => {
+          if (chrome.runtime.lastError) { /* Silent discard on restricted pages */ }
+        });
+      }
+    });
+  });
+
+  floatingToggle.addEventListener('change', () => {
+    const val = floatingToggle.checked;
+    console.log("[MCC Popup] Checkbox toggled. Checked =", val);
+    chrome.storage.local.set({ mcc_floating: val }, () => {
+      console.log("[MCC Popup] mcc_floating saved to storage.");
+      // Broadcast floating change to active tab content script
+      chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+        console.log("[MCC Popup] Active tabs query result:", tabs);
+        if (tabs[0]) {
+          console.log("[MCC Popup] Sending toggle message to tab:", tabs[0].id);
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: 'toggleFloatingWidget',
+            floating: val
+          }, (res) => {
+            if (chrome.runtime.lastError) {
+              console.log("[MCC Popup] Message send error (page might be restricted or unrefreshed):", chrome.runtime.lastError.message);
+            } else {
+              console.log("[MCC Popup] Content script response:", res);
+            }
+          });
+        } else {
+          console.log("[MCC Popup] No active tab found to message.");
+        }
+      });
+    });
+  });
 
   // ---- Gemini insight ----
   function generateInsight(totalCost, minutes) {

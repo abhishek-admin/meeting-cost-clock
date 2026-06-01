@@ -4,6 +4,13 @@
   "description": "Live cost counter for meetings — see exactly what this meeting is costing your team in real time",
   "version": "1.0.0",
   "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
