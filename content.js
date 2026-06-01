@@ -185,7 +185,6 @@ function renderFloatingWidget(show) {
   widget.id = 'mcc-floating-widget';
 
   widget.innerHTML = `
-    <span class="mcc-icon">✦</span>
     <span class="mcc-label">Meeting Cost:</span>
     <span id="mcc-widget-cost" class="mcc-cost">$0.00</span>
     <span id="mcc-widget-time" class="mcc-time">(00:00:00)</span>
